@@ -89,7 +89,7 @@ where title like '%SQL%'
 
 /*To remove gibberish in the criteria column*/
 update [Portfolio project].dbo.[linkedin-jobs-africa]
-set criteria='Not Available' where criteria like '%Ø%'
+set criteria='Not Available' where criteria like '%Ã˜%'
 
 
 /*To remove duplicate job titles, we create a CTE*/
