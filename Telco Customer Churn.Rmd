@@ -1,0 +1,611 @@
+---
+title: "Telco Customer Churn"
+author: "Kabirat Adeniyi"
+date: "2023-02-23"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+Telco systems is a telecommunications company having more than 40 years of experience in the design and development of high-performance network communications solutions, is a leader in telecommunications worldwide.
+
+This data set includes information about the customers, the services they utilize, and whether or not they have left. Our objective is to analyze the customer churn rate and provide offer advice on possible retentions programs to prevent more churning. A series of data analytical steps including EDA, statistical tests and visualizations will be performed.
+
+# EXPLORATORY DATA ANALYSIS
+
+Installing the necessary packages and loading the dataset and viewing the data
+
+```{r}
+#Installing the necessary packages
+install.packages("readr")
+install.packages("dplyr", version = "1.0.7")
+install.packages("ggplot2")
+
+
+library(dplyr)
+library(readr)
+#to load the dataset
+Telco_Customer_Churn <- read_csv("elco-Customer-Churn.csv")
+
+#To view the data
+head(Telco_Customer_Churn)
+str(Telco_Customer_Churn)
+```
+
+To check for missing values
+
+```{r}
+# Check for missing values in each column
+colSums(is.na(Telco_Customer_Churn))
+
+# Check the total number of missing values
+sum(is.na(Telco_Customer_Churn))
+```
+
+It seems as there 11 missing values in the totalcharges column. We drop the rows.
+
+```{r}
+# Remove rows with missing values in TotalCharges column
+Telco_Customer_Churn <- na.omit(Telco_Customer_Churn)
+
+```
+
+We also want to check for and remove duplicate values.
+
+```{r}
+# Check for duplicates
+dups <- duplicated(Telco_Customer_Churn)
+# Remove duplicates
+Telco_Customer_Churn <- Telco_Customer_Churn[!dups, ]
+```
+
+To generate summary statistics for the variables
+
+```{r}
+# Generate summary statistics for variables
+summary(Telco_Customer_Churn)
+```
+
+## Visualizations
+
+#### Churn Rate
+
+To visualize the Customer churn rate we create a bar plot
+
+```{r}
+library(ggplot2)
+library(ggplot2)
+
+
+# Create a bar chart of the counts with percentages
+ggplot(Telco_Customer_Churn, aes(x = Churn)) +
+  geom_bar(stat = "count") +
+  scale_x_discrete(labels = c("Not Churned", "Churned")) +
+  labs(x = "", y = "Count", title = "Count of Customers by Churn Status")
+
+
+
+```
+
+The analysis shows that 26.6% of the customers in the Telco_Customer_Churn dataset churned. This indicates that a significant number of customers ended their relationship with the company. Further analysis can be conducted to explore the reasons why customers are churning and identify potential strategies to reduce the churn rate.
+
+#### Total Charges and Monthly Charges
+
+To visualize the distribution of monthly charges by whether the customer churned or not
+
+```{r}
+library(ggplot2)
+
+# Create a density plot of MonthlyCharges by Churn
+ggplot(Telco_Customer_Churn, aes(x = MonthlyCharges, fill = Churn)) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Monthly Charges", y = "Density", title = "Density Plot of Monthly Charges by Churn") +
+  scale_fill_discrete(name = "Churn", labels = c("Not Churned", "Churned"))
+```
+
+To visualize the distribution of total charges by churn
+
+```{r}
+#to visualize the disttibution of total charges by churn
+library(ggplot2)
+
+total_charges_by_churn <- Telco_Customer_Churn[, c("TotalCharges", "Churn")]
+
+ggplot(total_charges_by_churn, aes(x = TotalCharges, fill = Churn)) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Total Charges", y = "Density", title = "Distribution of Total Charges by Churn")
+```
+
+#### Tenure
+
+To visualize the distribution of tenure by churn we use a histogram
+
+```{r}
+# Change column name from "tenure(in months)" to "tenure"
+names(Telco_Customer_Churn)[names(Telco_Customer_Churn) == "tenure(in months)"] <- "tenure"
+
+
+ggplot(Telco_Customer_Churn, aes(x = as.numeric(tenure))) +
+  geom_histogram(binwidth = 5, color = "black", fill = "blue") +
+  labs(x = "Tenure (months)", y = "Count", title = "Distribution of Tenure")
+```
+
+The viz shows that the longer the customer has been with the provider the more likely he will not churn.
+
+#### Monthly Charges vs Total Charges
+
+To visualize the effect of monthly charge ,total charges and tenure on whether the customer churned or not, we use a scatter plot
+
+```{r}
+
+library(ggplot2)
+library(gridExtra)
+
+# Create individual plots
+plot1 <- ggplot(Telco_Customer_Churn, aes(x=tenure, y=MonthlyCharges, color=Churn)) +
+  geom_point(size = .5) +
+  labs(x="Tenure", y="Monthly Charges", color="Churned") +
+  ggtitle("Monthly Charges by Tenure and Churned")
+
+plot2 <- ggplot(Telco_Customer_Churn, aes(x=tenure, y=TotalCharges, color=Churn)) +
+  geom_point(size = .5) +
+  labs(x="Tenure", y="Total Charges", color="Churned") +
+  ggtitle("Total Charges by Tenure and Churned")
+
+plot3 <- ggplot(Telco_Customer_Churn, aes(x=TotalCharges, y=MonthlyCharges, color=Churn)) +
+  geom_point(size = .5) +
+  labs(x="Total Charges", y="Monthly Charges", color="Churned") +
+  ggtitle("Total Charges vs Monthly Charges")
+
+# Combine plots into a multi-panel plot
+grid.arrange(plot1, plot2, plot3, ncol=3)
+
+
+```
+
+From the plots above we can conclude that:
+
+-   a lot of customers churned after just a month;
+
+-   a lot of customers are with the provider for 72 weeks;
+
+-   the longer the contract, the longer customer stays with the provider (higher mean score);
+
+-   customers with higher Monthly Charges are more likely to churn;
+
+-   the longer the customer has been with the provider the more likely he will not churn.\
+
+#### Recommendations for churn by tenure
+
+Tenure: The longer a customer has been with Telco, the less likely they are to churn. To incentivize customers to stay with Telco for longer periods of time, the company could offer loyalty rewards or special perks for customers who have been with the company for a certain amount of time. Additionally, they could focus on developing customer service strategies that prioritize long-term relationships with customers, such as assigning dedicated account managers to customers who have been with Telco for several years.
+
+### Customer Variables vs Churn
+
+A list of customer variables where given to us such as gender, whether the customer is a senior citizen or not,whether the customer has dependents or not and if the customers have partners or not.
+
+#### Gender
+
+```{r}
+names(Telco_Customer_Churn)[names(Telco_Customer_Churn) == "Senior Citizen"] <- "SeniorCitizen"
+
+#to plot for each for each of the demographics ie gender, senior citizen,dependents or partner against churn
+library(ggplot2)
+
+# calculate the percentages of churned and non-churned customers by gender
+percentages <- Telco_Customer_Churn %>%
+  group_by(gender, Churn) %>%
+  summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100)
+
+# plot for gender vs churn with percentages
+ggplot(Telco_Customer_Churn, aes(x=gender, fill=Churn)) +
+  geom_bar(position = position_dodge(0.9)) +
+  geom_text(data = percentages, aes(x = gender, y = count, label = paste0(round(percent, 1),"%")),
+            position = position_dodge(0.9), vjust = -0.5, color = "black", size = 3) +
+  labs(x="Gender", y="Count", fill="Churned") +
+  ggtitle("Gender vs Churned") 
+```
+
+From the visualization we see only a slight difference between male and female customers that churned
+
+#### Dependents
+
+This demographic defines whether the customer has a partner.
+
+```{r}
+# calculate the percentages of churned and non-churned customers by dependents
+percentages <- Telco_Customer_Churn %>%
+  group_by(Dependents, Churn) %>%
+  summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100)
+
+# plot for dependents vs churn with percentages
+ggplot(Telco_Customer_Churn, aes(x=Dependents, fill=Churn)) +
+  geom_bar(position = position_dodge(0.9)) +
+  geom_text(data = percentages, aes(x = Dependents, y = count, label = paste0(round(percent, 1),"%")),
+            position = position_dodge(0.9), vjust = -0.5, color = "black", size = 3) +
+  labs(x="Dependents", y="Count", fill="Churned") +
+  ggtitle("Dependents vs Churned")
+```
+
+We can conclude that a lot of customers that churned do not have dependents.
+
+#### Partnered
+
+Whether the customer has a partner or not
+
+```{r}
+# calculate the percentages of churned and non-churned customers by partner status
+percentages <- Telco_Customer_Churn %>%
+  group_by(Partner, Churn) %>%
+  summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100)
+
+# plot for partner vs churn with percentages
+ggplot(Telco_Customer_Churn, aes(x=Partner, fill=Churn)) +
+  geom_bar(position = position_dodge(0.9)) +
+  geom_text(data = percentages, aes(x = Partner, y = count, label = paste0(round(percent,1),"%")),
+            position = position_dodge(0.9),vjust = -0.5, color = "black", size = 3) +
+  labs(x="Partner", y="Count", fill="Churned") +
+  ggtitle("Partner vs Churned")
+```
+
+Also a significant amount of customers do not have partners.
+
+#### Senior Citizen
+
+Whether the customer is a senior citizen or not
+
+```{r}
+#calculate the percentages of churned and non-churned customers by senior citizen status
+
+percentages <- Telco_Customer_Churn %>%
+  group_by(SeniorCitizen, Churn) %>%
+  summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100)
+
+#plot for senior citizen vs churn with percentages
+ggplot(Telco_Customer_Churn, aes(x=SeniorCitizen, fill=Churn)) +
+  geom_bar(position = position_dodge(0.9)) +
+  geom_text(data = percentages, aes(x = SeniorCitizen, y = count, label = paste0(round(percent, 1),"%")),
+            position = position_dodge(0.9), vjust = -0.5, color = "black", size = 3) +
+  labs(x="Senior Citizen", y="Count", fill="Churned") +
+  ggtitle("Senior Citizen vs Churned")
+
+
+```
+
+We can conclude that higher percentage of churn comes from customers that are not senior citizens. This can allow us to tailor our recommendation to Telco.
+
+#### Recommendations for Demographic groups
+
+Based on the analysis, there are a few potential customer retention programs that could be implemented for each demographic group and tenure:
+
+-Gender: While the difference in churn rates between male and female customers is small, it may be worthwhile to investigate further to see if there are any gender-specific factors that are contributing to churn. For example, if female customers are more likely to churn due to poor customer service, Telco could implement additional training for customer service representatives on how to effectively communicate with female customers.
+
+-Senior Citizens: The data shows that senior citizens have a much lower churn rate than other age groups. To encourage customer loyalty among senior citizens, Telco could offer special discounts or promotions for senior customers. Additionally, they could focus on providing easy-to-use services and support options that cater to older customers.
+
+Partnership Status: Non-partnered customers have a higher churn rate than partnered customers, so Telco could develop targeted programs to encourage customers to sign up for partner plans. For example, they could offer discounts or additional services to customers who sign up for a partner plan or develop marketing campaigns that highlight the benefits of being on a partner plan.
+
+### Provided Services
+
+Telco provides a bunch of services like phone services, Multiple lines,internet services and streaming services for TV and Movies.
+
+#### Phone Services
+
+To visualize the relationship between Phone Services and churn
+
+```{r}
+library(ggplot2)
+
+# PhoneService
+ggplot(Telco_Customer_Churn, aes(x = PhoneService, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Phone Service", x = "Phone Service", y = "Count") +
+  scale_fill_manual(values = c("#009E73", "#D55E00"), name = "Churn")
+```
+
+The visualizations shows that a higher percentage of customers churn when they have phone services
+
+#### Multiple Lines
+
+To visualize whether customers with multiple lines churn or not
+
+```{r}
+
+## MultipleLines
+ggplot(Telco_Customer_Churn, aes(x = MultipleLines, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Multiple Lines", x = "Multiple Lines", y = "Count") +
+  scale_fill_manual(values = c("#009E73", "#D55E00"), name = "Churn")
+```
+
+The visualization depicts that both customers that Multiple lines and don't that do not have churn equally but more than does that do not have internet services.
+
+#### Internet Service
+
+Telco offers an Internet Service. To visualization of the status of internet on churn we use a bar plot.
+
+```{r}
+# InternetService
+ggplot(Telco_Customer_Churn, aes(x = InternetService, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Internet Service", x = "Internet Service", y = "Count") +
+  scale_fill_manual(values = c("#009E73", "#D55E00"), name = "Churn")
+
+```
+
+Many of the users that use Fiber optic cables leave the services of the company. this can be due to the quality of the fibre optic cables or slower speed rates associated with fiber optic cables.
+
+#### Streaming TV
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+Consumers have the option of opting for streaming tv with Telco. To visualize this effect on Churn rate, we use a bar plot.
+
+```{r}
+# StreamingTV
+ggplot(Telco_Customer_Churn, aes(x = StreamingTV, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Streaming TV", x = "Streaming TV", y = "Count") +
+  scale_fill_manual(values = c("#009E73", "#D55E00"), name = "Churn")
+```
+
+We can see a similar effect of churn on those that stream and those that dont stream tv.
+
+#### Streaming Movies
+
+Whether the customer has streaming movies service. we visualize with a bar plot
+
+```{r}
+# StreamingMovies
+ggplot(Telco_Customer_Churn, aes(x = StreamingMovies, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Streaming Movies", x = "Streaming Movies", y = "Count") +
+  scale_fill_manual(values = c("#009E73", "#D55E00"), name = "Churn")
+```
+
+Like the streaming Tv service offered, whether the customer streams movies or not has no significant difference on churn rate.
+
+#### Recommendations
+
+To incentivize customers to stay with the company, Telco should consider providing the following:
+
+Phone Service: Telco could provide better phone service plans with affordable rates, provide unlimited call plans or additional features such as free international calls, call waiting, and caller ID.
+
+Fiber Optic Cables: Telco could invest in upgrading its network infrastructure to provide faster internet speeds and improve network reliability for customers using fibre optic cables. They could also offer discounted rates or free upgrades to customers who are currently on a lower speed plan.
+
+Multiple Lines: Telco could offer bundled packages for multiple lines, provide discounted rates for families with more than one line or offer free add-on lines to existing customers.
+
+Streaming TV and Movies: Telco could offer streaming services such as Netflix or Amazon Prime Video at discounted rates for customers who currently do not stream TV. For those who do stream TV, they could provide exclusive content or add-on channels at a lower rate to retain them as customers. They could also consider providing their own streaming platform to compete with other providers in the market.
+
+### Support Services
+
+Telco offers support services to its customers like Online security, Online backup, Device Protection and Tech Support. For each support service we visualize the whether this affected churn or not.
+
+#### Online Security
+
+This service provides customers with online security measures to protect their data and information.
+
+```{r}
+# Define color palette
+my_colors <- c("#3182bd", "#9ecae1")
+
+# OnlineSecurity
+ggplot(Telco_Customer_Churn, aes(x = OnlineSecurity, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Online Security", x = "Online Security", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn")
+```
+
+Customers with online security tend to have lower churn rates compared to those without online security. This could be because customers who value online security are more likely to stick with a service that prioritizes their security needs.
+
+#### Online Backup
+
+This service enables customers to back up their data online, ensuring that their important files are safe and accessible from anywhere.
+
+```{r}
+# OnlineBackup
+ggplot(Telco_Customer_Churn, aes(x = OnlineBackup, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Online Backup", x = "Online Backup", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn")
+```
+
+Customers with online backup tend to have slightly lower churn rates compared to those without online backup. This could be because customers who are concerned about losing their data are more likely to stick with a service that offers backup solutions.
+
+#### Device Protection
+
+This service protects customers' devices from damage, theft, and other issues that could impact their performance.
+
+```{r}
+# DeviceProtection
+ggplot(Telco_Customer_Churn, aes(x = DeviceProtection, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Device Protection", x = "Device Protection", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn")
+```
+
+Customers with device protection tend to have lower churn rates compared to those without device protection. This could be because customers who are worried about damaging their devices are more likely to stick with a service that provides device protection.
+
+#### 
+
+Tech Support
+
+This service provides technical assistance to customers who need help with their devices or online services.
+
+```{r}
+# TechSupport
+ggplot(Telco_Customer_Churn, aes(x = TechSupport, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Tech Support", x = "Tech Support", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn")
+```
+
+#### 
+
+Customers with tech support tend to have lower churn rates compared to those without tech support. This could be because customers who value having access to assistance when technical issues arise are more likely to stick with a service that offers tech support.
+
+### 
+
+Payments
+
+Telco hase different types of contracts it offers it customers, and different methods of payments. It also offers a paperless billing sevice . Paperless billing allows businesses to send personal information directly to their customers, minimizing the opportunities for it to get lost or stolen along the way.
+
+#### Contract Type
+
+This variable indicates whether the customer has a month-to-month contract or a longer-term contract.
+
+```{r}
+my_colors <- c("#7CFC00", "#006400")
+
+# Contract
+ggplot(Telco_Customer_Churn, aes(x = Contract, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), 
+            position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Contract Type", x = "Contract Type", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn")
+```
+
+As the visualization shows,customers with longer-term contracts are less likely to churn since they are committed to the service for a longer period of time.
+
+#### Paperless Billing
+
+This variable indicates whether the customer has opted for paperless billing or not.
+
+```{r}
+# Paperless Billing
+ggplot(Telco_Customer_Churn, aes(x = PaperlessBilling, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), 
+            position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Paperless Billing", x = "Paperless Billing", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn")
+```
+
+Customers who opt for paperless billing are more likely to churn since they may not be receiving physical bills as reminders of the service they are subscribed to.
+
+#### 
+
+Payment Method
+
+This variable indicates the payment method used by the customer, such as electronic check, mailed check, bank transfer, or credit card.
+
+```{r}
+# Payment Method
+ggplot(Telco_Customer_Churn, aes(x = PaymentMethod, fill = Churn)) + 
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = ..count..), 
+            position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Churn by Payment Method", x = "Payment Method", y = "Count") +
+  scale_fill_manual(values = my_colors, name = "Churn") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+As the visualization depicts, customers who pay using electronic checks are more likely to churn since they may have lower credit scores and may not have the option to pay with credit cards.
+
+#### 
+
+Recommendations
+
+#### 
+
+Based on the analysis, it is evident that a significant number of customers churned due to the lack of certain services. Therefore, to incentivize customers to stay with the company, Telco should consider providing the following:
+
+1.  Online Backup: Telco can offer a free or discounted online backup service to customers who sign up for a long-term contract. This will provide customers with peace of mind, knowing that their data is secure, and reduce the likelihood of churn due to a lack of backup services.
+
+2.  Online Security: Telco can offer a free or discounted online security service to customers who sign up for a long-term contract. This will help customers protect their online identity and reduce the likelihood of churn due to lack of security services.
+
+3.  Device Protection: Telco can offer a free or discounted device protection service to customers who sign up for a long-term contract. This will help customers protect their devices and reduce the likelihood of churn due to a lack of device protection services.
+
+4.  Tech Support: Telco can offer free or discounted tech support to customers who sign up for a long-term contract. This will help customers resolve any issues they may have with their services and reduce the likelihood of churn due to a lack of tech support.
+
+5.  Payment Methods- Encourage customers to use payment methods other than electronic checks, such as credit cards or direct debit, to prevent any potential issues with payment processing.
+
+6.  Paperless Billing-Provide incentives for customers who opt out of paperless billing, such as discounts or freebies, to reduce the number of customers who churn due to this reason.
+
+    By offering these incentives, Telco can show its commitment to providing its customers with the best services and ensure that customers are satisfied and willing to stay with the company for the long term.
+
+# STATISTICAL ANALYSIS
+
+For our statistical analysis we want to confirm whether each of the variables(ie gender, dependents etc) have a direct effect on churn. We use chi-square tests of independence for this.
+
+### Customer Demographics
+
+#### Gender
+
+To test the hypothesis that gender has a direct correlation with churn rate, we can perform a chi-squared test of independence. The chi-squared test will help us determine whether there is a significant association between gender and churn in our dataset. The null hypothesis would be that there is no association between gender and churn, and the alternative hypothesis would be that there is a significant association between gender and churn. We will use a significance level of 0.05 for our test.
+
+```{r}
+# Create a contingency table of Gender vs Churn
+gender_churn_table <- table(Telco_Customer_Churn$gender, Telco_Customer_Churn$Churn)
+
+# Perform a chi-squared test of independence
+chisq.test(gender_churn_table)
+```
+
+A p-value of 0.4905 was obtained for the chi-square test of independence between gender and churn. This indicates that the relationship between gender and churn is not statistically significant at the 5% level of significance. Therefore, we fail to reject the null hypothesis that gender has no direct correlation with churn rate.
+
+#### Partnered
+
+```{r}
+# Conduct chi-square test of independence for Partnered against Churn
+chisq.test(Telco_Customer_Churn$Partner, Telco_Customer_Churn$Churn)
+```
+
+The p-value is less than the typical significance level of 0.05, so we can reject the null hypothesis that Partnered and Churn are independent variables. This suggests that there may be a relationship between whether a customer is partnered and whether they churned.
+
+A chi-square test of independence revealed a significant association between being partnered and churn rate. Customers who were not partnered were more likely to churn than those who were partnered.
+
+#### Senior Citizen
+
+```{r}
+senior_churn <- table(Telco_Customer_Churn$SeniorCitizen, Telco_Customer_Churn$Churn)
+chisq.test(senior_churn)
+
+```
+
+A chi-squared test of independence was performed to examine the relationship between SeniorCitizen and Churn in the Telco_Customer_Churn dataset. The contingency table revealed a significant association between these two variables (χ2 = 143.89, df = 1, p \< 0.001), indicating that senior citizens are less likely to churn than non-senior customers.
+
+### **Contract**
+
+First, we tested the relationship between the type of contract and churn. The results of the chi-square test showed a significant association between these variables. Customers with a month-to-month contract were more likely to churn compared to those with one or two year contracts.
+
+### **PaperlessBilling**
+
+Next, we tested the relationship between paperless billing and churn. The results of the chi-square test showed a significant association between these variables. Customers who opted for paperless billing were more likely to churn compared to those who did not.
+
+### **PaymentMethod**
+
+I also tested the relationship between the payment method and churn. The results of the chi-square test showed a significant association between these variables. Customers who paid through electronic check were more likely to churn compared to those who paid through other methods.
+
+### **Other Categorical Variables**
+
+We also performed chi-square tests of independence for the remaining categorical variables in the dataset ( phone service, multiple lines, internet service, online security, online backup, device protection, tech support, and streaming TV and movies) against churn. All of these tests showed a significant association between the variable and churn at a level of alpha = 0.05.
+
+## **Conclusion**
+
+Overall, the results of the chi-square tests suggest that several factors are significantly associated with churn, including contract type, paperless billing, payment method, and various service-related factors. This information can be used to target specific customer segments for retention efforts and improve overall customer satisfaction.
